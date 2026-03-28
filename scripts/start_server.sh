@@ -1,3 +1,3 @@
 #!/bin/bash
-systemctl restart nginx
-systemctl enable nginx
+systemctl restart apache2
+systemctl enable apache2
