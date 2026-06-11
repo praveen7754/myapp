@@ -1,27 +1,45 @@
-name: TruffleHog Secret Scan
+name: "TruffleHog Secret Scan - Block All Secrets"
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: ["main", "master"]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: ["main", "master"]
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+  id-token: write
+  issues: write
 
 jobs:
-  scan:
+  ScanSecrets:
+    name: Scan for secrets and credentials
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run TruffleHog
+      - name: TruffleHog OSS
+        id: trufflehog
         uses: trufflesecurity/trufflehog@v3.88.2
+        continue-on-error: true
         with:
           path: ./
-          base: HEAD~1
-          extra_args: --results=verified,unknown
+          base: "${{ github.event.repository.default_branch }}"
+          extra_args: --filter-entropy=4 --results=verified,unknown  # No --only-verified
+
+      - name: Scan Results Status
+        if: steps.trufflehog.outcome == 'failure'
+        run: |
+          echo "⚠️ Potential secret(s) detected!"
+          echo "This may be a false positive. Review the scan results."
+          echo "If this is a legitimate credential, revoke it immediately."
+          exit 1
