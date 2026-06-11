@@ -1,41 +1,27 @@
-name: "TruffleHog Secret Scan"
+name: TruffleHog Secret Scan
 
 on:
   push:
-    branches: ["main", "master"]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: ["main", "master"]
-  schedule:
-    - cron: "0 0 * * 0"
-  workflow_dispatch:
-
-permissions:
-  actions: read
-  contents: read
-  security-events: write
-  id-token: write
-  issues: write
+    branches:
+      - main
+      - master
 
 jobs:
-  ScanSecrets:
-    name: Scan for secrets and credentials
+  scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # Safety limit
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: TruffleHog OSS
-        id: trufflehog
-        uses: trufflesecurity/trufflehog@v3.88.2  # Pinned version
-        continue-on-error: true
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@v3.88.2
         with:
           path: ./
-          base: "${{ github.event.repository.default_branch }}"
-          extra_args: --filter-entropy=4 --results=verified,unknown --only-verified
-
-      - name: Scan Results Status
-        if: steps.trufflehog.outcome == 'failure'
-        run: exit 1
+          base: HEAD~1
+          extra_args: --results=verified,unknown
